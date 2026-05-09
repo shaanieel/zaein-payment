@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZaeinPayment Dashboard</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a0a; color: #e0e0e0; font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
+
+  /* Layout */
+  .sidebar {
+    position: fixed; left: 0; top: 0; bottom: 0; width: 220px;
+    background: #111; border-right: 1px solid #1e1e1e;
+    display: flex; flex-direction: column; padding: 24px 0;
+  }
+  .logo { padding: 0 20px 24px; border-bottom: 1px solid #1e1e1e; margin-bottom: 16px; }
+  .logo h1 { font-size: 18px; font-weight: 700; }
+  .logo span { color: #00d4a1; }
+  .logo p { font-size: 11px; color: #555; margin-top: 2px; }
+  nav a {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 20px; color: #666; text-decoration: none;
+    font-size: 13px; border-radius: 6px; margin: 2px 8px;
+    transition: all 0.2s;
+  }
+  nav a:hover, nav a.active { background: #1a1a1a; color: #fff; }
+  nav a.active { color: #00d4a1; }
+  .sidebar-footer { margin-top: auto; padding: 16px 20px; border-top: 1px solid #1e1e1e; }
+
+  .main { margin-left: 220px; padding: 28px 32px; }
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* Stats cards */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
+  .stat-card {
+    background: #111; border: 1px solid #1e1e1e; border-radius: 12px;
+    padding: 20px; position: relative; overflow: hidden;
+  }
+  .stat-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: var(--accent, #00d4a1);
+  }
+  .stat-label { font-size: 11px; color: #555; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .stat-value { font-size: 26px; font-weight: 700; color: #fff; }
+  .stat-sub { font-size: 11px; color: #555; margin-top: 4px; }
+
+  /* Section title */
+  .section-title {
+    font-size: 14px; font-weight: 600; color: #aaa;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;
+  }
+
+  /* Table */
+  .table-wrap { background: #111; border: 1px solid #1e1e1e; border-radius: 12px; overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: #161616; color: #666; padding: 12px 16px; text-align: left; font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+  td { padding: 12px 16px; border-top: 1px solid #1a1a1a; color: #ccc; }
+  tr:hover td { background: #141414; }
+  .badge {
+    display: inline-block; padding: 3px 8px; border-radius: 20px;
+    font-size: 11px; font-weight: 500;
+  }
+  .badge.paid { background: rgba(0,212,161,0.15); color: #00d4a1; }
+  .badge.pending { background: rgba(255,190,50,0.15); color: #ffbe32; }
+  .badge.expire { background: rgba(255,80,80,0.15); color: #ff6b6b; }
+
+  /* Buttons */
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; transition: all 0.2s; }
+  .btn-primary { background: #00d4a1; color: #000; }
+  .btn-primary:hover { background: #00b88a; }
+  .btn-danger { background: rgba(255,80,80,0.1); color: #ff6b6b; border: 1px solid rgba(255,80,80,0.2); }
+  .btn-danger:hover { background: rgba(255,80,80,0.2); }
+  .btn-ghost { background: #1a1a1a; color: #aaa; border: 1px solid #222; }
+  .btn-ghost:hover { background: #222; color: #fff; }
+
+  /* GoPay connect card */
+  .connect-card { background: #111; border: 1px solid #1e1e1e; border-radius: 12px; padding: 28px; max-width: 480px; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+  .status-dot.connected { background: #00d4a1; box-shadow: 0 0 6px #00d4a1; }
+  .status-dot.disconnected { background: #666; }
+  .form-group { margin-bottom: 16px; }
+  label { display: block; font-size: 12px; color: #888; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+  input[type=text], input[type=number], input[type=password] {
+    width: 100%; background: #1a1a1a; border: 1px solid #2a2a2a;
+    border-radius: 8px; padding: 10px 12px; color: #fff; font-size: 14px; outline: none;
+  }
+  input:focus { border-color: #00d4a1; }
+  .info-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #1a1a1a; font-size: 13px; }
+  .info-row span:first-child { color: #666; }
+  .info-row span:last-child { color: #ccc; }
+
+  .alert { padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-top: 12px; }
+  .alert-success { background: rgba(0,212,161,0.1); border: 1px solid rgba(0,212,161,0.2); color: #00d4a1; }
+  .alert-error { background: rgba(255,80,80,0.1); border: 1px solid rgba(255,80,80,0.2); color: #ff6b6b; }
+
+  /* API docs */
+  .code-block { background: #0d0d0d; border: 1px solid #1e1e1e; border-radius: 8px; padding: 16px; font-family: 'Courier New', monospace; font-size: 12px; color: #aaa; white-space: pre-wrap; word-break: break-all; margin-bottom: 16px; }
+  .api-endpoint { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .method { padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+  .method.post { background: rgba(99,179,237,0.15); color: #63b3ed; }
+  .method.get { background: rgba(0,212,161,0.15); color: #00d4a1; }
+
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    .main { margin-left: 0; padding: 16px; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="logo">
+    <h1>Zaein<span>Pay</span></h1>
+    <p>Self-hosted QRIS Gateway</p>
+  </div>
+  <nav>
+    <a href="#" class="active" onclick="showPage('home')">📊 &nbsp;Dashboard</a>
+    <a href="#" onclick="showPage('gopay')">🔗 &nbsp;Koneksi GoPay</a>
+    <a href="#" onclick="showPage('transactions')">💳 &nbsp;Transaksi</a>
+    <a href="#" onclick="showPage('api')">📡 &nbsp;API Docs</a>
+    <a href="#" onclick="showPage('settings')">⚙️ &nbsp;Pengaturan</a>
+  </nav>
+  <div class="sidebar-footer">
+    <button class="btn btn-ghost" style="width:100%;justify-content:center" onclick="doLogout()">🚪 Logout</button>
+  </div>
+</aside>
+
+<main class="main">
+
+  <!-- HOME PAGE -->
+  <div class="page active" id="page-home">
+    <div style="margin-bottom:24px">
+      <h2 style="font-size:20px;font-weight:700">Dashboard</h2>
+      <p style="color:#555;font-size:13px;margin-top:4px">Ringkasan transaksi ZaeinStore</p>
+    </div>
+
+    <!-- GoPay status banner -->
+    <div id="gopayBanner" style="background:#111;border:1px solid #1e1e1e;border-radius:10px;padding:14px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between">
+      <div style="display:flex;align-items:center;gap:8px;font-size:13px">
+        <span class="status-dot disconnected" id="bannerDot"></span>
+        <span id="bannerText">Memeriksa koneksi GoPay...</span>
+      </div>
+      <button class="btn btn-ghost" onclick="showPage('gopay')" style="font-size:12px;padding:6px 12px">Kelola</button>
+    </div>
+
+    <div class="stats" id="statsGrid">
+      <div class="stat-card" style="--accent:#00d4a1">
+        <div class="stat-label">Total Pendapatan</div>
+        <div class="stat-value" id="s-revenue">Rp 0</div>
+        <div class="stat-sub">Semua waktu</div>
+      </div>
+      <div class="stat-card" style="--accent:#63b3ed">
+        <div class="stat-label">Total Transaksi</div>
+        <div class="stat-value" id="s-total">0</div>
+        <div class="stat-sub" id="s-rate">0% sukses</div>
+      </div>
+      <div class="stat-card" style="--accent:#ffbe32">
+        <div class="stat-label">Pending</div>
+        <div class="stat-value" id="s-pending">0</div>
+        <div class="stat-sub">Menunggu bayar</div>
+      </div>
+      <div class="stat-card" style="--accent:#00d4a1">
+        <div class="stat-label">Hari Ini</div>
+        <div class="stat-value" id="s-today-rev">Rp 0</div>
+        <div class="stat-sub" id="s-today-trx">0 transaksi</div>
+      </div>
+    </div>
+
+    <div class="section-title">
+      Transaksi Terbaru
+      <button class="btn btn-ghost" onclick="loadData()" style="font-size:11px;padding:5px 10px">↻ Refresh</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Order ID</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th>Waktu</th>
+          </tr>
+        </thead>
+        <tbody id="recentTrx">
+          <tr><td colspan="4" style="text-align:center;color:#444;padding:32px">Memuat...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- GOPAY PAGE -->
+  <div class="page" id="page-gopay">
+    <div style="margin-bottom:24px">
+      <h2 style="font-size:20px;font-weight:700">Koneksi GoPay Merchant</h2>
+      <p style="color:#555;font-size:13px;margin-top:4px">Hubungkan akun GoPay Merchant kamu untuk generate QRIS otomatis</p>
+    </div>
+
+    <!-- Status card -->
+    <div class="connect-card" style="margin-bottom:20px" id="gopayStatusCard">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div style="font-size:14px;font-weight:600;display:flex;align-items:center">
+          <span class="status-dot disconnected" id="gopayDot"></span>
+          <span id="gopayStatusText">Tidak terhubung</span>
+        </div>
+        <button class="btn btn-danger" onclick="disconnectGoPay()" id="disconnectBtn" style="display:none;font-size:12px;padding:6px 12px">Disconnect</button>
+      </div>
+      <div id="gopayInfo" style="display:none">
+        <div class="info-row"><span>Nomor HP</span><span id="gopayPhone">-</span></div>
+        <div class="info-row"><span>Merchant ID</span><span id="gopayMid">-</span></div>
+        <div class="info-row"><span>Session expire</span><span id="gopayExpiry">-</span></div>
+      </div>
+    </div>
+
+    <!-- Connect form -->
+    <div class="connect-card" id="connectForm">
+      <div style="font-size:14px;font-weight:600;margin-bottom:20px">🔗 Hubungkan GoPay Merchant</div>
+
+      <!-- Step 1: Phone -->
+      <div id="step1">
+        <div class="form-group">
+          <label>Nomor HP GoPay Merchant</label>
+          <input type="text" id="gopayPhone" placeholder="081234567890">
+        </div>
+        <button class="btn btn-primary" onclick="requestOTP()">Kirim OTP</button>
+        <div id="otpAlert" class="alert" style="display:none"></div>
+      </div>
+
+      <!-- Step 2: OTP -->
+      <div id="step2" style="display:none">
+        <p style="font-size:13px;color:#888;margin-bottom:16px">OTP sudah dikirim ke nomor kamu. Masukkan kode 6 digit:</p>
+        <div class="form-group">
+          <label>Kode OTP</label>
+          <input type="text" id="otpCode" placeholder="123456" maxlength="6">
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-primary" onclick="verifyOTP()">Verifikasi OTP</button>
+          <button class="btn btn-ghost" onclick="showStep(1)">← Kembali</button>
+        </div>
+        <div id="verifyAlert" class="alert" style="display:none"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TRANSACTIONS PAGE -->
+  <div class="page" id="page-transactions">
+    <div style="margin-bottom:24px;display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <h2 style="font-size:20px;font-weight:700">Transaksi</h2>
+        <p style="color:#555;font-size:13px;margin-top:4px">Semua riwayat transaksi</p>
+      </div>
+      <button class="btn btn-ghost" onclick="loadTransactions()">↻ Refresh</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Transaction ID</th>
+            <th>Order ID</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th>Waktu</th>
+          </tr>
+        </thead>
+        <tbody id="allTrx">
+          <tr><td colspan="5" style="text-align:center;color:#444;padding:32px">Memuat...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- API PAGE -->
+  <div class="page" id="page-api">
+    <div style="margin-bottom:24px">
+      <h2 style="font-size:20px;font-weight:700">API Docs</h2>
+      <p style="color:#555;font-size:13px;margin-top:4px">Integrasikan ke ZaeinStore atau sistem lainnya</p>
+    </div>
+
+    <div style="background:#111;border:1px solid #1e1e1e;border-radius:12px;padding:24px;max-width:700px">
+      <div style="margin-bottom:8px;font-size:13px;color:#888">Base URL server kamu:</div>
+      <div class="code-block" id="baseUrl">https://your-railway-url.railway.app</div>
+
+      <div style="margin-bottom:8px;font-size:13px;color:#888">Authentication (header untuk semua request):</div>
+      <div class="code-block">X-Api-Key: YOUR_API_SECRET_KEY</div>
+
+      <hr style="border-color:#1e1e1e;margin:20px 0">
+
+      <div class="api-endpoint">
+        <span class="method post">POST</span>
+        <code style="font-size:13px;color:#ccc">/api/qris/generate</code>
+      </div>
+      <p style="font-size:13px;color:#666;margin-bottom:8px">Generate QRIS dinamis untuk satu transaksi</p>
+      <div class="code-block">// Request body
+{
+  "amount": 50000,
+  "buyer_email": "buyer@email.com",  // opsional
+  "product_id": "film-001",          // opsional
+  "metadata": {}                      // opsional
+}
+
+// Response
+{
+  "success": true,
+  "data": {
+    "transaction_id": "xxx-xxx-xxx",
+    "order_id": "ZP-1234567890-ABC",
+    "amount": 50000,
+    "status": "pending",
+    "qr_url": "https://...",
+    "expiry_time": "2024-03-30 10:30:00"
+  }
+}</div>
+
+      <div class="api-endpoint">
+        <span class="method post">POST</span>
+        <code style="font-size:13px;color:#ccc">/api/qris/status</code>
+      </div>
+      <div class="code-block">// Request
+{ "transaction_id": "xxx-xxx-xxx" }
+
+// Response
+{ "success": true, "data": { "status": "settlement", ... } }</div>
+
+      <div class="api-endpoint">
+        <span class="method get">GET</span>
+        <code style="font-size:13px;color:#ccc">/api/qris/poll/:transactionId</code>
+      </div>
+      <p style="font-size:13px;color:#666;margin-bottom:8px">Untuk polling status dari frontend (countdown timer)</p>
+
+      <div class="api-endpoint">
+        <span class="method post">POST</span>
+        <code style="font-size:13px;color:#ccc">/webhook/gopay</code>
+      </div>
+      <p style="font-size:13px;color:#666;margin-bottom:8px">Daftarkan URL ini ke GoPay sebagai callback. Otomatis forward ke ZaeinStore Worker.</p>
+
+      <hr style="border-color:#1e1e1e;margin:20px 0">
+      <p style="font-size:12px;color:#555">Contoh integrasi di Cloudflare Worker ZaeinStore sudah tersedia di <code>docs/integration.md</code></p>
+    </div>
+  </div>
+
+  <!-- SETTINGS PAGE -->
+  <div class="page" id="page-settings">
+    <div style="margin-bottom:24px">
+      <h2 style="font-size:20px;font-weight:700">Pengaturan</h2>
+    </div>
+    <div style="background:#111;border:1px solid #1e1e1e;border-radius:12px;padding:24px;max-width:480px">
+      <div style="font-size:14px;font-weight:600;margin-bottom:16px">Environment Variables</div>
+      <p style="font-size:13px;color:#666;line-height:1.6">
+        Semua konfigurasi diatur via file <code>.env</code>. Lihat <code>.env.example</code> untuk panduan lengkap.
+      </p>
+      <div style="margin-top:16px" class="code-block">PORT=3000
+API_SECRET_KEY=your_secret
+GOPAY_PHONE=0812xxx
+SUPABASE_URL=https://xxx.supabase.co
+SUPABASE_KEY=eyJ...
+ZAEINSTORE_WEBHOOK_URL=https://api-pay.semuapro.store/gopay-callback
+DASHBOARD_USERNAME=admin
+DASHBOARD_PASSWORD=yourpass</div>
+      <p style="font-size:12px;color:#555;margin-top:8px">Restart server setelah mengubah .env</p>
+    </div>
+  </div>
+
+</main>
+
+<script>
+const API_KEY = ''; // Tidak perlu di dashboard, pakai session cookie
+
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.querySelectorAll('nav a')[['home','gopay','transactions','api','settings'].indexOf(name)].classList.add('active');
+
+  if (name === 'home') loadData();
+  if (name === 'transactions') loadTransactions();
+  if (name === 'gopay') loadGopayStatus();
+  if (name === 'api') {
+    document.getElementById('baseUrl').textContent = window.location.origin;
+  }
+}
+
+// ─── Load dashboard data ──────────────────────────────────────
+async function loadData() {
+  try {
+    const res = await fetch('/dashboard/api/overview');
+    const data = await res.json();
+    if (!data.success) return;
+
+    const s = data.stats;
+    document.getElementById('s-revenue').textContent = 'Rp ' + s.total_revenue.toLocaleString('id');
+    document.getElementById('s-total').textContent = s.total_transactions;
+    document.getElementById('s-rate').textContent = s.success_rate + '% sukses';
+    document.getElementById('s-pending').textContent = s.total_pending;
+    document.getElementById('s-today-rev').textContent = 'Rp ' + s.today_revenue.toLocaleString('id');
+    document.getElementById('s-today-trx').textContent = s.today_transactions + ' transaksi';
+
+    // GoPay banner
+    const gp = data.gopay;
+    const dot = document.getElementById('bannerDot');
+    const text = document.getElementById('bannerText');
+    if (gp.connected) {
+      dot.className = 'status-dot connected';
+      text.textContent = `GoPay terhubung — ${gp.phone}`;
+    } else {
+      dot.className = 'status-dot disconnected';
+      text.textContent = 'GoPay belum terhubung — Klik Kelola untuk connect';
+    }
+
+    // Recent transactions
+    const tbody = document.getElementById('recentTrx');
+    if (!data.recent_transactions.length) {
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#444;padding:32px">Belum ada transaksi</td></tr>';
+      return;
+    }
+    tbody.innerHTML = data.recent_transactions.slice(0, 10).map(t => `
+      <tr>
+        <td style="font-family:monospace;font-size:12px;color:#888">${t.order_id}</td>
+        <td style="font-weight:600">Rp ${(t.amount||0).toLocaleString('id')}</td>
+        <td>${badgeFor(t.status)}</td>
+        <td style="color:#555;font-size:12px">${fmtDate(t.created_at)}</td>
+      </tr>
+    `).join('');
+  } catch (e) {
+    console.error('loadData error:', e);
+  }
+}
+
+async function loadTransactions() {
+  try {
+    const res = await fetch('/dashboard/api/overview');
+    const data = await res.json();
+    const tbody = document.getElementById('allTrx');
+    const trxs = data.recent_transactions || [];
+    if (!trxs.length) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#444;padding:32px">Belum ada transaksi</td></tr>';
+      return;
+    }
+    tbody.innerHTML = trxs.map(t => `
+      <tr>
+        <td style="font-family:monospace;font-size:11px;color:#888">${t.id?.slice(0,16)}...</td>
+        <td style="font-family:monospace;font-size:12px">${t.order_id}</td>
+        <td>Rp ${(t.amount||0).toLocaleString('id')}</td>
+        <td>${badgeFor(t.status)}</td>
+        <td style="color:#555;font-size:12px">${fmtDate(t.created_at)}</td>
+      </tr>
+    `).join('');
+  } catch (e) {}
+}
+
+// ─── GoPay connect ────────────────────────────────────────────
+let tempOtpPhone = '';
+
+async function loadGopayStatus() {
+  const res = await fetch('/api/gopay/status');
+  const data = await res.json();
+  const info = data.data;
+  const dot = document.getElementById('gopayDot');
+  const text = document.getElementById('gopayStatusText');
+  const infoDiv = document.getElementById('gopayInfo');
+  const disconnectBtn = document.getElementById('disconnectBtn');
+  const connectForm = document.getElementById('connectForm');
+
+  if (info.connected) {
+    dot.className = 'status-dot connected';
+    text.textContent = 'Terhubung';
+    infoDiv.style.display = 'block';
+    disconnectBtn.style.display = 'inline-flex';
+    connectForm.style.display = 'none';
+    document.getElementById('gopayPhone').textContent = info.phone;
+    document.getElementById('gopayMid').textContent = info.merchant_id || '-';
+    document.getElementById('gopayExpiry').textContent = info.expires_at ? new Date(info.expires_at).toLocaleString('id') : '-';
+  } else {
+    dot.className = 'status-dot disconnected';
+    text.textContent = 'Tidak terhubung';
+    infoDiv.style.display = 'none';
+    disconnectBtn.style.display = 'none';
+    connectForm.style.display = 'block';
+  }
+}
+
+async function requestOTP() {
+  const phone = document.getElementById('gopayPhone').value.trim();
+  if (!phone) return showAlert('otpAlert', 'Masukkan nomor HP dulu', 'error');
+
+  showAlert('otpAlert', 'Mengirim OTP...', '');
+  try {
+    const res = await fetch('/api/gopay/request-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone })
+    });
+    const data = await res.json();
+    if (data.success) {
+      tempOtpPhone = phone;
+      showAlert('otpAlert', data.message, 'success');
+      setTimeout(() => showStep(2), 800);
+    } else {
+      showAlert('otpAlert', data.message, 'error');
+    }
+  } catch (e) {
+    showAlert('otpAlert', 'Gagal kirim OTP', 'error');
+  }
+}
+
+async function verifyOTP() {
+  const otp = document.getElementById('otpCode').value.trim();
+  if (!otp) return showAlert('verifyAlert', 'Masukkan kode OTP', 'error');
+
+  showAlert('verifyAlert', 'Memverifikasi...', '');
+  try {
+    const res = await fetch('/api/gopay/verify-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone: tempOtpPhone, otp })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showAlert('verifyAlert', '✅ ' + data.message, 'success');
+      setTimeout(() => loadGopayStatus(), 1200);
+    } else {
+      showAlert('verifyAlert', data.message, 'error');
+    }
+  } catch (e) {
+    showAlert('verifyAlert', 'Gagal verifikasi OTP', 'error');
+  }
+}
+
+async function disconnectGoPay() {
+  if (!confirm('Yakin disconnect GoPay? Kamu perlu login ulang.')) return;
+  await fetch('/api/gopay/disconnect', { method: 'POST' });
+  loadGopayStatus();
+}
+
+function showStep(n) {
+  document.getElementById('step1').style.display = n === 1 ? 'block' : 'none';
+  document.getElementById('step2').style.display = n === 2 ? 'block' : 'none';
+}
+
+// ─── Helpers ──────────────────────────────────────────────────
+function badgeFor(status) {
+  const map = {
+    settlement: ['paid', '✅ Paid'], PAID: ['paid', '✅ Paid'],
+    pending: ['pending', '⏳ Pending'],
+    expire: ['expire', '❌ Expired'], cancel: ['expire', '❌ Cancelled']
+  };
+  const [cls, label] = map[status] || ['expire', status];
+  return `<span class="badge ${cls}">${label}</span>`;
+}
+
+function fmtDate(d) {
+  if (!d) return '-';
+  return new Date(d).toLocaleString('id', { dateStyle: 'short', timeStyle: 'short' });
+}
+
+function showAlert(id, msg, type) {
+  const el = document.getElementById(id);
+  el.style.display = 'block';
+  el.className = 'alert' + (type === 'success' ? ' alert-success' : type === 'error' ? ' alert-error' : '');
+  el.textContent = msg;
+}
+
+async function doLogout() {
+  await fetch('/api/auth/logout', { method: 'POST' });
+  window.location.href = '/dashboard/login';
+}
+
+// Init
+loadData();
+setInterval(loadData, 30000); // Auto refresh tiap 30 detik
+</script>
+</body>
+</html>
